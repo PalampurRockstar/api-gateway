@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kong
+  labels:
+    app: kong
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kong
+  template:
+    metadata:
+      labels:
+        app: kong
+    spec:
+      containers:
+        - env:
+            - name: KONG_DATABASE
+              value: "off"
+            - name: KONG_NGINX_WORKER_PROCESSES
+              value: "2"
+            - name: KONG_KIC
+              value: "on"
+            - name: KONG_ADMIN_ACCESS_LOG
+              value: /dev/stdout
+            - name: KONG_ADMIN_ERROR_LOG
+              value: /dev/stderr
+            - name: KONG_PROXY_ERROR_LOG
+              value: /dev/stderr
+            - name: KONG_ROUTER_FLAVOR
+              value: traditional
+            - name: KONG_ADMIN_LISTEN
+              value: 0.0.0.0:8001
+            - name: KONG_CLIENT_BODY_BUFFER_SIZE
+              value: 1024m
+            - name: KONG_CLIENT_MAX_BODY_SIZE
+              value: "0"
+            - name: KONG_PROXY_LISTEN
+              value: 0.0.0.0:8000
+            - name: KONG_NGINX_HTTP_RESOLVER
+              value: 8.8.8.8
+            - name: KONG_NGINX_HTTP_CLIENT_BODY_BUFFER_SIZE
+              value: "1m"
+            - name: KONG_NGINX_HTTP_CLIENT_MAX_BODY_SIZE
+              value: "10m"
+            - name: KONG_STATUS_LISTEN
+              value: 0.0.0.0:8100
+            - name: KONG_DECLARATIVE_CONFIG_STRING
+              value: "{\"_format_version\":\"1.1\",\"services\":[{\"host\":\"httpbin.org\",\"port\":443,\"protocol\":\"https\",\"routes\":[{\"paths\":[\"/test\"]}]},{\"host\":\"pet-onboarding\",\"port\":8080,\"protocol\":\"http\",\"routes\":[{\"paths\":[\"/pet-onboarding\"]}]}],\"plugins\":[{\"name\":\"rate-limiting\",\"config\":{\"policy\":\"local\",\"limit_by\":\"ip\",\"minute\":3}},{\"name\":\"cors\",\"config\":{\"origins\":[\"http://localhost:300\",\"http://34.110.201.53\"],\"methods\":[\"GET\",\"POST\",\"PUT\",\"DELETE\"],\"headers\":[\"Accept\",\"Accept-Version\",\"Content-Length\",\"Content-MD5\",\"Content-Type\",\"Date\",\"X-Auth-Token\"],\"exposed_headers\":[\"X-Auth-Token\"],\"credentials\":true,\"max_age\":3600}}]}"
+          image: kong:latest
+          name: kong
+          volumeMounts:
+            - mountPath: /kong_prefix/
+              name: gateway-external-kong-prefix-dir
+            - mountPath: /tmp
+              name: gateway-external-kong-tmp
+          ports:
+            - containerPort: 8001
+              name: admin
+              protocol: TCP
+            - containerPort: 8000
+              name: proxy
+              protocol: TCP
+            - containerPort: 8100
+              name: status
+              protocol: TCP
+      volumes:
+        - emptyDir: {}
+          name: gateway-external-kong-prefix-dir
+        - emptyDir: {}
+          name: gateway-external-kong-tmp
